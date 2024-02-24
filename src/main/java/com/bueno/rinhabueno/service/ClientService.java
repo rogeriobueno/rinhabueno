@@ -7,43 +7,27 @@ import com.bueno.rinhabueno.entity.TypeTransaction;
 import com.bueno.rinhabueno.exceptions.ResourceNotFoundException;
 import com.bueno.rinhabueno.exceptions.ResourceUnprocessableException;
 import com.bueno.rinhabueno.repository.ClientRepository;
-import com.bueno.rinhabueno.repository.TransactioReturn;
 import com.bueno.rinhabueno.repository.TransactionRepository;
-import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
-@AllArgsConstructor
-@Slf4j
-@Transactional
 public class ClientService {
 
     private final TransactionRepository transactionRepository;
     private final ClientRepository clientRepository;
 
-    @Transactional
-    public TransactionResponse addNewTransactionProc(Long clientId, TransactionRequest request) {
-        TransactioReturn response = clientRepository.executeNewTransaction(clientId,
-                request.valor(), request.descricao(), request.tipo().toUpperCase()).get(0);
+    public ClientService(TransactionRepository transactionRepository, ClientRepository clientRepository) {
+        this.transactionRepository = transactionRepository;
+        this.clientRepository = clientRepository;
+    }
 
-        if (response.getRet_return_status().equals(422))
-            throw new ResourceUnprocessableException("Not permit");
-        if (response.getRet_return_status().equals(404))
-            throw new ResourceNotFoundException("Not found");
-
-        return TransactionResponse.builder()
-                .returnStatus(response.getRet_return_status())
-                .saldo(response.getRet_saldo())
-                .limite(response.getRet_limite())
-                .build();
+    private static boolean isPermitedOperation(TransactionRequest request, Client client) {
+        return TypeTransaction.D.isEqualIgnoreCase(request.tipo()) &&
+                (client.getLimite() + client.getSaldo() < request.valor());
     }
 
     @Transactional
@@ -51,20 +35,11 @@ public class ClientService {
 
         Client savedClient = saveAndUpdateClient(clientId, request);
 
-        Transaction newTransaction = Transaction.builder()
-                .client(savedClient)
-                .value(request.valor())
-                .type(TypeTransaction.valueOf(request.tipo().toUpperCase()))
-                .description(request.descricao())
-                .createAt(ZonedDateTime.now())
-                .build();
-
+        Transaction newTransaction = new Transaction(request.valor(),
+                TypeTransaction.valueOf(request.tipo().toUpperCase()), request.descricao(), savedClient);
         transactionRepository.save(newTransaction);
 
-        return TransactionResponse.builder()
-                .saldo(savedClient.getSaldo())
-                .limite(savedClient.getLimite())
-                .build();
+        return new TransactionResponse(savedClient.getSaldo(), savedClient.getLimite());
     }
 
     @Transactional
@@ -74,7 +49,7 @@ public class ClientService {
         if (isPermitedOperation(request, client)) {
             throw new ResourceUnprocessableException("Operacap nao pode ser processada");
         }
-        if (request.tipo().equalsIgnoreCase(TypeTransaction.C.name())) {
+        if (TypeTransaction.C.isEqualIgnoreCase(request.tipo())) {
             client.setSaldo(client.getSaldo() + request.valor());
         } else {
             client.setSaldo(client.getSaldo() - request.valor());
@@ -82,38 +57,21 @@ public class ClientService {
         return clientRepository.save(client);
     }
 
-
-    private static boolean isPermitedOperation(TransactionRequest request, Client client) {
-        return TypeTransaction.D.isEqualOf(request.tipo()) &&
-                (client.getLimite() + client.getSaldo() < request.valor());
-    }
-
     @Transactional(readOnly = true)
     public ExtratoResponse showLastTenTransactions(Long clientId) {
 
         Client client = fetchClient(clientId);
 
-        SaldoResponse saldo = SaldoResponse.builder()
-                .dataExtrato(ZonedDateTime.now())
-                .total(client.getSaldo())
-                .limite(client.getLimite())
-                .build();
+        SaldoResponse saldo = new SaldoResponse(client.getSaldo(), ZonedDateTime.now(), client.getLimite());
 
         List<Transaction> lastTransactions = transactionRepository.findLastTenTransactions(client);
 
         List<TransactionItemResponse> transactionItens = lastTransactions.parallelStream().map(transaction ->
-                        TransactionItemResponse.builder()
-                                .valor(transaction.getValue())
-                                .tipo(transaction.getType().name())
-                                .descricao(transaction.getDescription())
-                                .createAt(transaction.getCreateAt())
-                                .build())
+                        new TransactionItemResponse(transaction.getValue(), transaction.getType().name(),
+                                transaction.getDescription(), transaction.getCreateAt()))
                 .toList();
 
-        return ExtratoResponse.builder()
-                .saldo(saldo)
-                .ultimasTransacoes(transactionItens)
-                .build();
+        return new ExtratoResponse(saldo, transactionItens);
     }
 
 
@@ -122,6 +80,7 @@ public class ClientService {
             return new ResourceNotFoundException(String.format("Cliente não encontrado com id %d", clientId));
         });
     }
+
     private Client fetchClient(Long clientId) {
         return clientRepository.findClientByIdNoLock(clientId).orElseThrow(() -> {
             return new ResourceNotFoundException(String.format("Cliente não encontrado com id %d", clientId));

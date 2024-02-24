@@ -2,16 +2,10 @@ package com.bueno.rinhabueno.entity;
 
 import com.bueno.rinhabueno.dto.TransactionResponse;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-@Setter
-@Getter
-@NoArgsConstructor
+
 @Entity
 @Table(name = "clients")
 public class Client {
@@ -26,6 +20,39 @@ public class Client {
     private Long limite;
     @Column(name = "saldo")
     private Long saldo;
-//    @Version
-//    private Integer version;
+
+    public Client() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public void setNome(String nome) {
+        this.nome = nome;
+    }
+
+    public Long getLimite() {
+        return limite;
+    }
+
+    public void setLimite(Long limite) {
+        this.limite = limite;
+    }
+
+    public Long getSaldo() {
+        return saldo;
+    }
+
+    public void setSaldo(Long saldo) {
+        this.saldo = saldo;
+    }
 }

@@ -7,7 +7,6 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @SpringBootApplication
 @EnableTransactionManagement
 public class RinhabuenoApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(RinhabuenoApplication.class, args);
     }
