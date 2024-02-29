@@ -20,7 +20,7 @@ public class Transaction {
     @Enumerated(value = EnumType.STRING)
     private TypeTransaction type;
 
-    @Column(nullable = false, length = 50)
+    @Column(length = 20)
     private String description;
 
     @Temporal(TemporalType.TIMESTAMP)
@@ -36,6 +36,7 @@ public class Transaction {
     }
 
     public Transaction(Long value, TypeTransaction type, String description, Client client) {
+        this();
         this.value = value;
         this.type = type;
         this.description = description;

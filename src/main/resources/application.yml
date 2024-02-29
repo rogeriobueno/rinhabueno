@@ -1,5 +1,8 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
+  tomcat:
+    threads:
+      min-spare: ${THREADS:50}
 
 spring:
   application:
@@ -10,14 +13,15 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/bank-db}
     username: ${DB_USER:rinha_user}
     password: ${DB_PASSWORD:my_rinha_password}
-
+    hikari:
+      maximum-pool-size: ${HIKARI_POOL_SIZE:100}
+      minimum-idle: ${HIKARI_POOL_MIN_IDLE:10}
 
   jpa:
-#    show-sql: true
-#    generate-ddl: true
-#    hibernate:
-#      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
+  jackson:
+    deserialization:
+      accept-float-as-int: false

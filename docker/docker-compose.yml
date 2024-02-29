@@ -6,35 +6,39 @@ services:
     image: rogerbu/rinhabueno:latest
     hostname: api01
     environment:
-      - DB_URL=jdbc:postgresql://db:5432/bank-db
-      - DB_USER=rinha_user
-      - DB_PASSWORD=my_rinha_password
+      - DB_URL=jdbc:postgresql://db:5432/rinha-db
+      - DB_USER=rinha
+      - DB_PASSWORD=rinha
+      - THREADS=100
+      - HIKARI_POOL_SIZE=80
+      - HIKARI_POOL_MIN_IDLE=50
+      - SERVER_PORT=8080
     ports:
-      - "8080:8080"
+      - "8080:9999"
     depends_on:
       - db
     deploy:
       resources:
         limits:
-          cpus: "0.45"
-          memory: "200MB"
+          cpus: "0.4"
+          memory: "150MB"
 
   api02:
     <<: *api
     image: rogerbu/rinhabueno:latest
     hostname: api02
     ports:
-      - "8081:8080"
+      - "8081:9999"
 
   db:
-    image: postgres:alpine
+    image: postgres:16-alpine
     hostname: db
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_PASSWORD: my_rinha_password
-      POSTGRES_USER: rinha_user
-      POSTGRES_DB: bank-db
+      POSTGRES_PASSWORD: rinha
+      POSTGRES_USER: rinha
+      POSTGRES_DB: rinha-db
     volumes:
       - ./script.sql:/docker-entrypoint-initdb.d/script.sql
       - ./postgresql.conf:/docker-entrypoint-initdb.d/postgresql.conf
@@ -42,8 +46,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.4"
-          memory: "140MB"
+          cpus: "0.5"
+          memory: "230MB"
 
   nginx:
     image: nginx:latest

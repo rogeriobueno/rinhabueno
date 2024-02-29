@@ -2,7 +2,6 @@ package com.bueno.rinhabueno.exceptions.handler;
 
 
 import com.bueno.rinhabueno.dto.ExceptionResponseDTO;
-import com.bueno.rinhabueno.exceptions.BadRequestException;
 import com.bueno.rinhabueno.exceptions.ResourceNotFoundException;
 import com.bueno.rinhabueno.exceptions.ResourceUnprocessableException;
 import org.slf4j.Logger;
@@ -27,38 +26,18 @@ public class CustomizedResponseEntityExceptionHandler {
                         LocalDateTime.now(),
                         ex.getMessage(),
                         request.getDescription(false));
-        LOG.error(ex.getMessage(), ex);
-        return new ResponseEntity<>(exceptionResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
-    @ExceptionHandler(BadRequestException.class)
-    public final ResponseEntity<ExceptionResponseDTO> handleBadRequestExceptions(Exception ex, WebRequest request) {
-        ExceptionResponseDTO exceptionResponseDTO =
-                new ExceptionResponseDTO(
-                        LocalDateTime.now(),
-                        ex.getMessage(),
-                        request.getDescription(false));
-        return new ResponseEntity<>(exceptionResponseDTO, HttpStatus.BAD_REQUEST);
+        LOG.error("Message 500 {} description {} ", ex.getMessage(), request.getDescription(true), ex);
+        return new ResponseEntity<>(exceptionResponseDTO, HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public final ResponseEntity<ExceptionResponseDTO> handleNotResourceFoundException(Exception ex, WebRequest request) {
-        ExceptionResponseDTO exceptionResponseDTO =
-                new ExceptionResponseDTO(
-                        LocalDateTime.now(),
-                        ex.getMessage(),
-                        request.getDescription(false));
-        return new ResponseEntity<>(exceptionResponseDTO, HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(ResourceUnprocessableException.class)
     public final ResponseEntity<ExceptionResponseDTO> handleResourceUnprocessableException(Exception ex, WebRequest request) {
-        ExceptionResponseDTO exceptionResponseDTO =
-                new ExceptionResponseDTO(
-                        LocalDateTime.now(),
-                        ex.getMessage(),
-                        request.getDescription(false));
-        return new ResponseEntity<>(exceptionResponseDTO, HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ResponseEntity<>(HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
 }

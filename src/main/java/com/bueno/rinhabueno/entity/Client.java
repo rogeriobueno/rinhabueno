@@ -1,9 +1,7 @@
 package com.bueno.rinhabueno.entity;
 
-import com.bueno.rinhabueno.dto.TransactionResponse;
-import jakarta.persistence.*;
 
-import java.time.LocalDateTime;
+import jakarta.persistence.*;
 
 
 @Entity
@@ -14,8 +12,6 @@ public class Client {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", updatable = false)
     private Long id;
-    @Column(name = "nome", length = 50)
-    private String nome;
     @Column(name = "limite")
     private Long limite;
     @Column(name = "saldo")
@@ -30,14 +26,6 @@ public class Client {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public String getNome() {
-        return nome;
-    }
-
-    public void setNome(String nome) {
-        this.nome = nome;
     }
 
     public Long getLimite() {

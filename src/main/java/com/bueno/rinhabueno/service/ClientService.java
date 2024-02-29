@@ -8,6 +8,10 @@ import com.bueno.rinhabueno.exceptions.ResourceNotFoundException;
 import com.bueno.rinhabueno.exceptions.ResourceUnprocessableException;
 import com.bueno.rinhabueno.repository.ClientRepository;
 import com.bueno.rinhabueno.repository.TransactionRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,9 +29,15 @@ public class ClientService {
         this.clientRepository = clientRepository;
     }
 
-    private static boolean isPermitedOperation(TransactionRequest request, Client client) {
-        return TypeTransaction.D.isEqualIgnoreCase(request.tipo()) &&
-                (client.getLimite() + client.getSaldo() < request.valor());
+    private boolean isPermitedOperation(final TransactionRequest request, final Client client) {
+        long saldo = client.getSaldo();
+        long limite = client.getLimite();
+        long valor = request.valor();
+
+        if (request.tipo().equals("d")) {
+            return (limite + saldo) > valor;
+        }
+        return true;
     }
 
     @Transactional
@@ -36,37 +46,46 @@ public class ClientService {
         Client savedClient = saveAndUpdateClient(clientId, request);
 
         Transaction newTransaction = new Transaction(request.valor(),
-                TypeTransaction.valueOf(request.tipo().toUpperCase()), request.descricao(), savedClient);
+                TypeTransaction.valueOf(request.tipo().toLowerCase()), request.descricao(), savedClient);
         transactionRepository.save(newTransaction);
 
         return new TransactionResponse(savedClient.getSaldo(), savedClient.getLimite());
     }
 
     @Transactional
-    public Client saveAndUpdateClient(Long clientId, TransactionRequest request) {
+    public synchronized Client saveAndUpdateClient(long clientId, TransactionRequest request) {
+
         Client client = fetchClientLocked(clientId);
 
-        if (isPermitedOperation(request, client)) {
-            throw new ResourceUnprocessableException("Operacap nao pode ser processada");
+        if (!isPermitedOperation(request, client)) {
+            throw new ResourceUnprocessableException("Not permited");
         }
-        if (TypeTransaction.C.isEqualIgnoreCase(request.tipo())) {
-            client.setSaldo(client.getSaldo() + request.valor());
+
+        TypeTransaction transactionType = TypeTransaction.valueOf(request.tipo());
+        long transactionAmount = request.valor();
+        long currentBalance = client.getSaldo();
+        long newBalance;
+        if (transactionType == TypeTransaction.c) {
+            newBalance = currentBalance + transactionAmount;
         } else {
-            client.setSaldo(client.getSaldo() - request.valor());
+            newBalance = currentBalance - transactionAmount;
         }
+        client.setSaldo(newBalance);
+
         return clientRepository.save(client);
     }
 
-    @Transactional(readOnly = true)
     public ExtratoResponse showLastTenTransactions(Long clientId) {
 
         Client client = fetchClient(clientId);
 
+//        List<Transaction> lastTransactions = transactionRepository.findLastTenTransactions(client);
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Transaction> lastTransactions = transactionRepository.findByClientOrderByCreateAtDesc(client, pageable);
+
         SaldoResponse saldo = new SaldoResponse(client.getSaldo(), ZonedDateTime.now(), client.getLimite());
 
-        List<Transaction> lastTransactions = transactionRepository.findLastTenTransactions(client);
-
-        List<TransactionItemResponse> transactionItens = lastTransactions.parallelStream().map(transaction ->
+        List<TransactionItemResponse> transactionItens = lastTransactions.stream().map(transaction ->
                         new TransactionItemResponse(transaction.getValue(), transaction.getType().name(),
                                 transaction.getDescription(), transaction.getCreateAt()))
                 .toList();
@@ -76,15 +95,13 @@ public class ClientService {
 
 
     private Client fetchClientLocked(Long clientId) {
-        return clientRepository.findById(clientId).orElseThrow(() -> {
-            return new ResourceNotFoundException(String.format("Cliente não encontrado com id %d", clientId));
-        });
+        return clientRepository.findById(clientId).orElseThrow(() ->
+                new ResourceNotFoundException(String.format("Cliente não encontrado com id %d", clientId)));
     }
 
     private Client fetchClient(Long clientId) {
-        return clientRepository.findClientByIdNoLock(clientId).orElseThrow(() -> {
-            return new ResourceNotFoundException(String.format("Cliente não encontrado com id %d", clientId));
-        });
+        return clientRepository.findClientByIdNoLock(clientId).orElseThrow(() ->
+                new ResourceNotFoundException(String.format("Cliente não encontrado com id %d", clientId)));
     }
 
 }

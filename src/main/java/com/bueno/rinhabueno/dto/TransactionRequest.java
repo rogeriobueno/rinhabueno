@@ -3,15 +3,13 @@ package com.bueno.rinhabueno.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
-
 @JsonPropertyOrder({"valor", "tipo", "descricao"})
 public record TransactionRequest(
-        @JsonProperty("valor")
+        @JsonProperty(value = "valor", required = true)
         Long valor,
-        @JsonProperty("tipo")
+        @JsonProperty(value = "tipo", required = true)
         String tipo,
-
-        @JsonProperty("descricao")
+        @JsonProperty(value = "descricao", required = true)
         String descricao
 ) {
 }
