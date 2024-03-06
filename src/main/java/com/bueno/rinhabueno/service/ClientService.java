@@ -11,7 +11,6 @@ import com.bueno.rinhabueno.repository.TransactionRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,7 +48,7 @@ public class ClientService {
                 TypeTransaction.valueOf(request.tipo().toLowerCase()), request.descricao(), savedClient);
         transactionRepository.save(newTransaction);
 
-        return new TransactionResponse(savedClient.getSaldo(), savedClient.getLimite());
+        return new TransactionResponse(savedClient.getLimite(), savedClient.getSaldo());
     }
 
     @Transactional
