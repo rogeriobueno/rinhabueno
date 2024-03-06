@@ -16,7 +16,9 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    restart: always
     deploy:
       resources:
         limits:
@@ -38,6 +40,12 @@ services:
       POSTGRES_PASSWORD: rinha
       POSTGRES_USER: rinha
       POSTGRES_DB: rinha-db
+    restart: always
+    healthcheck:
+      test: pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB
+      interval: 5s
+      timeout: 10s
+      retries: 10
     volumes:
       - ./script.sql:/docker-entrypoint-initdb.d/script.sql
       - ./postgresql.conf:/docker-entrypoint-initdb.d/postgresql.conf
@@ -57,6 +65,7 @@ services:
       - api02
     ports:
       - "9999:9999"
+    restart: always
     deploy:
       resources:
         limits:
